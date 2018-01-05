@@ -71,55 +71,57 @@ for i in xrange(365):
 
 
 max_h = max_w = int(np.sqrt(h ** 2 + w ** 2) + 0.5)
-cal = np.ones((13 * border_h + 12 * max_h, 32 * border_w + 31 * max_w, 3)).astype('float32')
 
-prev_month = 1
+def make_cal():
+    cal = np.ones((13 * border_h + 12 * max_h, 32 * border_w + 31 * max_w, 3)).astype('float32')
 
-for i in xrange(365):
-    gatech.date = ephem.Date(d + i)
-    moon.compute(gatech)
+    for i in xrange(365):
+        gatech.date = ephem.Date(d + i)
+        moon.compute(gatech)
 
-    year, month, day = gatech.date.triple()
+        year, month, day = gatech.date.triple()
 
-    if month != prev_month:
-        prev_month = month
+        day = int(day - 0.5)
 
-    day = int(day - 0.5)
+        m = np.ones((h, w, 3)).astype('float32') * moon.phase / 100.
 
-    m = np.ones((h, w, 3)).astype('float32') * moon.phase / 100.
+        m[:, :, 1] = (moon.earth_distance - min_dist) / (max_dist - min_dist)
+        m[:, :, 0] = 1 - (moon.sun_distance - min_dist_sun) / (max_dist_sun - min_dist_sun)
 
-    m[:, :, 1] = (moon.earth_distance - min_dist) / (max_dist - min_dist)
-    m[:, :, 0] = 1 - (moon.sun_distance - min_dist_sun) / (max_dist_sun - min_dist_sun)
+        m[0:2, :, :] = 0
+        m[-2:, :, :] = 0
+        m[:, 0:2, :] = 0
+        m[:, -2:, :] = 0
 
-    m[0:2, :, :] = 0
-    m[-2:, :, :] = 0
-    m[:, 0:2, :] = 0
-    m[:, -2:, :] = 0
+        off_h = random.randint(0, border_h // 2)
+        off_w = random.randint(0, border_w // 2)
 
-    off_h = random.randint(0, border_h // 2)
-    off_w = random.randint(0, border_w // 2)
+        deg = random.randint(-15, 15)
+        rot_m = rotate(m, deg)
 
-    deg = random.randint(-15, 15)
-    rot_m = rotate(m, deg)
+        start_r = (month - 1) * max_h + month * border_h + off_h
+        end_r = month * max_h + month * border_h + off_h
 
-    start_r = (month - 1) * max_h + month * border_h + off_h
-    end_r = month * max_h + month * border_h + off_h
+        start_c = (day - 1) * max_w + day * border_w + off_w
+        end_c = day * max_w + day * border_w + off_w
 
-    start_c = (day - 1) * max_w + day * border_w + off_w
-    end_c = day * max_w + day * border_w + off_w
+        d_r = rot_m.shape[0] - (end_r - start_r)
+        d_c = rot_m.shape[1] - (end_c - start_c)
 
-    d_r = rot_m.shape[0] - (end_r - start_r)
-    d_c = rot_m.shape[1] - (end_c - start_c)
+        cal[start_r : end_r + d_r, start_c : end_c + d_c] = rot_m
 
-    cal[start_r : end_r + d_r, start_c : end_c + d_c] = rot_m
+    rotated = rotate(cal, 3)
 
-rotated = rotate(cal, 3)
+    rotated = cv2.copyMakeBorder(rotated, top=150, bottom=200, left=50, right=50, borderType=cv2.BORDER_CONSTANT, value=[1, 1, 1])
 
-rotated = cv2.copyMakeBorder(rotated, top=150, bottom=200, left=50, right=50, borderType=cv2.BORDER_CONSTANT, value=[1, 1, 1])
+    return rotated
 
-cv2.imshow('cal', rotated)
+for i in xrange(10):
+    cal = make_cal()
+    cv2.imshow('cal', cal)
 
-cv2.waitKey(0)
-cv2.imwrite('cal.png', rotated * 255)
+    cv2.waitKey(20)
+
+    cv2.imwrite('frames/cal_' + str(i).zfill(3) + '.png' , cal * 255)
 
 
