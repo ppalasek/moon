@@ -31,11 +31,11 @@ def rotate(mat, angle):
 
 #####################
 
-h = 25
-w = 25
+h = 20
+w = 20
 
-border_h = 10
-border_w = 10
+border_h = 8
+border_w = 8
 
 gatech = ephem.Observer()
 gatech.lon, gatech.lat = '51.509865', '-0.118092' # london
@@ -114,7 +114,12 @@ for i in xrange(365):
     cal[start_r : end_r + d_r, start_c : end_c + d_c] = rot_m
 
 rotated = rotate(cal, 3)
+
+rotated = cv2.copyMakeBorder(rotated, top=150, bottom=200, left=50, right=50, borderType=cv2.BORDER_CONSTANT, value=[1, 1, 1])
+
 cv2.imshow('cal', rotated)
 
 cv2.waitKey(0)
 cv2.imwrite('cal.png', rotated * 255)
+
+
